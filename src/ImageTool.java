@@ -1,22 +1,42 @@
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.awt.image.ColorModel;
 import java.awt.image.Raster;
 import java.io.File;
-import java.io.IOException;
 
 public class ImageTool {
 
-    private BufferedImage image;
+    private static BufferedImage image;
+    private static BufferedImage[] bitPlanes;
+    private static String imageName;
 
-    public ImageTool(File image) throws IOException {
-        this.image = ImageIO.read(image);
+    public static BufferedImage getImage() {
+        return image;
     }
 
-    public BufferedImage[] getPlanes() throws Exception {
+    public static BufferedImage[] getBitPlanes() {
+        return bitPlanes;
+    }
+
+    public static String getImageName() {
+        return imageName;
+    }
+
+    private static void extractFileNameWithoutExtension(String fileName){
+        int extensionIndex = fileName.lastIndexOf('.');
+        imageName = fileName.substring(0,extensionIndex);
+    }
+
+    public static void processBitPlanesFromImage(File imageFile) throws Exception {
+        image = ImageIO.read(imageFile);
+        extractFileNameWithoutExtension(imageFile.getName());
+
+//        image.getColorModel().getPixelSize();
+
         int imageWidth = image.getWidth();
         int imageHeight = image.getHeight();
 
-        BufferedImage[] bitPlanes = new BufferedImage[8];
+        bitPlanes = new BufferedImage[8];
         for (int i = 0; i < bitPlanes.length; i++) {
             bitPlanes[i] = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_BYTE_BINARY);
         }
@@ -29,11 +49,9 @@ public class ImageTool {
                 addBitsToPlanes(bitPlanes, planes, i, j);
             }
         }
-
-        return bitPlanes;
     }
 
-    private String decimalTo8BitBinary(int number) throws Exception {
+    private static String decimalTo8BitBinary(int number) throws Exception {
         if (number < 0 || number > 255) {
             throw new Exception("Number out of range");
         }
@@ -59,7 +77,7 @@ public class ImageTool {
     }
 
 
-    private void addBitsToPlanes(BufferedImage[] bitPlanes, String planesForPixel, int x, int y) throws Exception {
+    private static void addBitsToPlanes(BufferedImage[] bitPlanes, String planesForPixel, int x, int y) throws Exception {
         int planesNo = 8;
         if (planesForPixel.length() != planesNo) {
             throw new Exception("Invalid planes length");
