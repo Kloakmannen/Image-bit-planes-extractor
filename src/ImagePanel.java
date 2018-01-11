@@ -7,7 +7,7 @@ public class ImagePanel extends JPanel {
     private JLabel titleLabel;
     private JLabel imageLabel;
 
-    public ImagePanel(String title) {
+    public ImagePanel() {
         setLayout(new BorderLayout());
 
         titleLabel = new JLabel();
@@ -17,7 +17,6 @@ public class ImagePanel extends JPanel {
 
         add(titleLabel, BorderLayout.NORTH);
         add(imageLabel, BorderLayout.CENTER);
-        titleLabel.setText(title);
         repaint();
     }
 
@@ -32,6 +31,8 @@ public class ImagePanel extends JPanel {
     public void setImage(Image image) {
         imageLabel.setIcon(new ImageIcon(image));
     }
+
+    public void setTile(String title) {titleLabel.setText(title);}
 
     @Override
     public Dimension getMinimumSize() {
