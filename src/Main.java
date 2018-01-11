@@ -4,62 +4,81 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-import java.io.File;
+import java.io.*;
 import java.util.ArrayList;
 
 public class Main {
 
-    static private ImageTool imageTool;
-    static private JPanel imagesPanel;
-    static private JPanel buttonsPanel;
+    static private ImagePanel originalImage;
+    static private JPanel processedImagesPanel;
     static private ArrayList<ImagePanel> imagePanels = new ArrayList<>(8);
+    static private StringBuilder stringBuilder = new StringBuilder();
+    static private JFrame window;
 
     public static void main(String[] args) {
-        JFrame window = new JFrame();
-        window.getContentPane().setLayout(new BorderLayout());
+        window = new JFrame("Bit planes slicer");
+        window.getContentPane().setLayout(new GridLayout(1, 2, 20, 0));
         window.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
+        addControlPanelTo(window);
         addImagesJPanelTo(window);
-        addButtonsToJFrame(window);
 
         window.setVisible(true);
-        window.setSize(800, 600);
+        window.setResizable(false);
+        window.setSize(1400, 600);
+
+        Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
+        window.setLocation(dim.width / 2 - window.getSize().width / 2, dim.height / 2 - window.getSize().height / 2);
+    }
+
+    static private void addControlPanelTo(JFrame window) {
+        JPanel container = new JPanel();
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+
+        originalImage = new ImagePanel();
+        container.add(originalImage);
+
+        addButtonsToJFrame(container);
+        window.getContentPane().add(container);
     }
 
     static private void showImages() throws Exception {
-        if (imageTool == null) {
-            return;
-        }
+        originalImage.setTile("Original image");
+        originalImage.setImage(ImageTool.getImage().getScaledInstance(originalImage.getImageWidth(), originalImage.getImageHeight(), Image.SCALE_SMOOTH));
 
-        BufferedImage[] planes = imageTool.getPlanes();
-
+        BufferedImage[] planes = ImageTool.getBitPlanes();
         for (int i = 0; i < planes.length; i++) {
             ImagePanel temp = imagePanels.get(i);
-            temp.setImage(planes[i].getScaledInstance(temp.getImageWidth(),temp.getImageHeight(),Image.SCALE_SMOOTH));
+            temp.setTile("Bit layer #" + i);
+            temp.setImage(planes[i].getScaledInstance(temp.getImageWidth(), -1, Image.SCALE_SMOOTH));
         }
     }
 
     static private void addImagesJPanelTo(JFrame frame) {
-        imagesPanel = new JPanel();
-        imagesPanel.setLayout(new GridLayout(2, 4, 5, 5));
-        imagesPanel.setMinimumSize(new Dimension(1000, 400));
+        JPanel container = new JPanel(new BorderLayout());
+
+        processedImagesPanel = new JPanel();
+        processedImagesPanel.setLayout(new GridLayout(2, 4, 5, 5));
+        processedImagesPanel.setMinimumSize(new Dimension(1000, 400));
 
         for (int i = 0; i < 8; i++) {
-            ImagePanel temp = new ImagePanel("Bit layer #" + i);
+            ImagePanel temp = new ImagePanel();
             imagePanels.add(temp);
-            imagesPanel.add(temp);
+            processedImagesPanel.add(temp, BorderLayout.EAST);
         }
-        frame.getContentPane().add(imagesPanel, BorderLayout.CENTER);
+        container.add(processedImagesPanel);
+        frame.getContentPane().add(container);
     }
 
-    static private void addButtonsToJFrame(JFrame frame) {
-        buttonsPanel = new JPanel();
-        buttonsPanel.setLayout(new GridLayout(1, 2, 10, 10));
-
+    static private void addButtonsToJFrame(JPanel frame) {
         JButton loadImage = new JButton("Load 8-bit image");
         JButton saveToFile = new JButton("Save to file");
-        buttonsPanel.add(loadImage);
-        buttonsPanel.add(saveToFile);
+
+        JPanel buttonsContainer = new JPanel(new GridLayout(2, 1, 0, 5));
+
+        buttonsContainer.add(loadImage);
+        buttonsContainer.add(saveToFile);
+        frame.add(buttonsContainer);
 
         loadImage.addActionListener(new ActionListener() {
             @Override
@@ -72,7 +91,7 @@ public class Main {
 
                 if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     try {
-                        imageTool = new ImageTool(fileChooser.getSelectedFile());
+                        ImageTool.processBitPlanesFromImage(fileChooser.getSelectedFile());
                         showImages();
                     } catch (Exception e1) {
                         e1.printStackTrace();
@@ -81,14 +100,46 @@ public class Main {
             }
         });
 
-        //TODO: Implement save to file
-        loadImage.addActionListener(new ActionListener() {
+        saveToFile.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                try {
+                    BufferedImage[] bitPlanes = ImageTool.getBitPlanes();
+                    if (bitPlanes == null) {
+                        JOptionPane.showMessageDialog(window, "Select an image first.", "Warning", JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
 
+                    stringBuilder.setLength(0);
+                    FileWriter fileWriter = new FileWriter(ImageTool.getImageName() + " - bit planes.txt");
+                    BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+
+
+                    for (int i = 0; i < bitPlanes.length; i++) {
+                        stringBuilder.append(System.getProperty("line.separator"));
+                        stringBuilder.append("Planul de biti #" + i);
+                        stringBuilder.append(System.getProperty("line.separator"));
+
+                        for (int y = 0; y < bitPlanes[i].getHeight(); y++) {
+                            for (int x = 0; x < bitPlanes[i].getWidth(); x++) {
+                                stringBuilder.append(bitPlanes[i].getRaster().getSample(x, y, 0) + " ");
+                            }
+                            stringBuilder.append(System.getProperty("line.separator"));
+                        }
+                    }
+
+                    bufferedWriter.write(stringBuilder.toString());
+                    bufferedWriter.flush();
+                    bufferedWriter.close();
+
+                } catch (FileNotFoundException e1) {
+                    e1.printStackTrace();
+                } catch (UnsupportedEncodingException e1) {
+                    e1.printStackTrace();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
             }
         });
-
-        frame.getContentPane().add(buttonsPanel, BorderLayout.SOUTH);
     }
 }
