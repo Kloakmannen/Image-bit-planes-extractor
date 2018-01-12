@@ -1,33 +1,53 @@
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.awt.image.ColorModel;
 import java.awt.image.Raster;
 import java.io.File;
 
 public class ImageTool {
 
-    private static BufferedImage image;
-    private static BufferedImage[] bitPlanes;
-    private static String imageName;
+    private static ImageTool instance = null;
+    private BufferedImage image;
+    private BufferedImage[] bitPlanes;
+    private String imageName;
+    private String[] pixelBinaryLUT;
+    private static final int planesNo = 8;
 
-    public static BufferedImage getImage() {
+    private ImageTool() {
+        pixelBinaryLUT = new String[256];
+        try {
+            for (int i = 0; i < 256; i++) {
+                pixelBinaryLUT[i] = decimalTo8BitBinary(i);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static ImageTool getInstance() {
+        if (instance == null) {
+            instance = new ImageTool();
+        }
+        return instance;
+    }
+
+    public BufferedImage getImage() {
         return image;
     }
 
-    public static BufferedImage[] getBitPlanes() {
+    public BufferedImage[] getBitPlanes() {
         return bitPlanes;
     }
 
-    public static String getImageName() {
+    public String getImageName() {
         return imageName;
     }
 
-    private static void extractFileNameWithoutExtension(String fileName){
+    private void extractFileNameWithoutExtension(String fileName) {
         int extensionIndex = fileName.lastIndexOf('.');
-        imageName = fileName.substring(0,extensionIndex);
+        imageName = fileName.substring(0, extensionIndex);
     }
 
-    public static void processBitPlanesFromImage(File imageFile) throws Exception {
+    public void processBitPlanesFromImage(File imageFile) throws Exception {
         image = ImageIO.read(imageFile);
         extractFileNameWithoutExtension(imageFile.getName());
 
@@ -45,13 +65,13 @@ public class ImageTool {
         for (int i = 0; i < imageWidth; i++) {
             for (int j = 0; j < imageHeight; j++) {
                 int pixelValue = imageData.getSample(i, j, 0);
-                String planes = decimalTo8BitBinary(pixelValue);
-                addBitsToPlanes(bitPlanes, planes, i, j);
+                String planesOfPixel = pixelBinaryLUT[pixelValue];
+                addBitsToPlanes(bitPlanes, planesOfPixel, i, j);
             }
         }
     }
 
-    private static String decimalTo8BitBinary(int number) throws Exception {
+    private String decimalTo8BitBinary(int number) throws Exception {
         if (number < 0 || number > 255) {
             throw new Exception("Number out of range");
         }
@@ -77,8 +97,7 @@ public class ImageTool {
     }
 
 
-    private static void addBitsToPlanes(BufferedImage[] bitPlanes, String planesForPixel, int x, int y) throws Exception {
-        int planesNo = 8;
+    private void addBitsToPlanes(BufferedImage[] bitPlanes, String planesForPixel, int x, int y) throws Exception {
         if (planesForPixel.length() != planesNo) {
             throw new Exception("Invalid planes length");
         }
