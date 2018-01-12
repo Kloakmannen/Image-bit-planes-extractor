@@ -20,8 +20,7 @@ public class Main {
         window.getContentPane().setLayout(new GridLayout(1, 2, 20, 0));
         window.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
-        addControlPanelTo(window);
-        addImagesJPanelTo(window);
+        initializeFrame(window);
 
         window.setVisible(true);
         window.setResizable(false);
@@ -29,6 +28,11 @@ public class Main {
 
         Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
         window.setLocation(dim.width / 2 - window.getSize().width / 2, dim.height / 2 - window.getSize().height / 2);
+    }
+
+    private static void initializeFrame(JFrame frame){
+        addControlPanelTo(window);
+        addImagesJPanelTo(window);
     }
 
     static private void addControlPanelTo(JFrame window) {
@@ -44,9 +48,16 @@ public class Main {
 
     static private void showImages() throws Exception {
         originalImage.setTile("Original image");
-        originalImage.setImage(ImageTool.getImage().getScaledInstance(originalImage.getImageWidth(), originalImage.getImageHeight(), Image.SCALE_SMOOTH));
 
-        BufferedImage[] planes = ImageTool.getBitPlanes();
+        int imageWidth = originalImage.getImageWidth();
+        int imageHeight = originalImage.getImageHeight();
+        if (imageWidth > imageHeight) {
+            originalImage.setImage(ImageTool.getInstance().getImage().getScaledInstance(-1, imageHeight, Image.SCALE_SMOOTH));
+        } else {
+            originalImage.setImage(ImageTool.getInstance().getImage().getScaledInstance(imageWidth, -1, Image.SCALE_SMOOTH));
+        }
+
+        BufferedImage[] planes = ImageTool.getInstance().getBitPlanes();
         for (int i = 0; i < planes.length; i++) {
             ImagePanel temp = imagePanels.get(i);
             temp.setTile("Bit layer #" + i);
@@ -91,7 +102,7 @@ public class Main {
 
                 if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                     try {
-                        ImageTool.processBitPlanesFromImage(fileChooser.getSelectedFile());
+                        ImageTool.getInstance().processBitPlanesFromImage(fileChooser.getSelectedFile());
                         showImages();
                     } catch (Exception e1) {
                         e1.printStackTrace();
@@ -104,14 +115,14 @@ public class Main {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    BufferedImage[] bitPlanes = ImageTool.getBitPlanes();
+                    BufferedImage[] bitPlanes = ImageTool.getInstance().getBitPlanes();
                     if (bitPlanes == null) {
                         JOptionPane.showMessageDialog(window, "Select an image first.", "Warning", JOptionPane.INFORMATION_MESSAGE);
                         return;
                     }
 
                     stringBuilder.setLength(0);
-                    FileWriter fileWriter = new FileWriter(ImageTool.getImageName() + " - bit planes.txt");
+                    FileWriter fileWriter = new FileWriter(ImageTool.getInstance().getImageName() + " - bit planes.txt");
                     BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
 
 
@@ -132,10 +143,6 @@ public class Main {
                     bufferedWriter.flush();
                     bufferedWriter.close();
 
-                } catch (FileNotFoundException e1) {
-                    e1.printStackTrace();
-                } catch (UnsupportedEncodingException e1) {
-                    e1.printStackTrace();
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
