@@ -128,7 +128,7 @@ public class Main {
 
                     for (int i = 0; i < bitPlanes.length; i++) {
                         stringBuilder.append(System.getProperty("line.separator"));
-                        stringBuilder.append("Planul de biti #" + i);
+                        stringBuilder.append("Bit player #" + i);
                         stringBuilder.append(System.getProperty("line.separator"));
 
                         for (int y = 0; y < bitPlanes[i].getHeight(); y++) {
